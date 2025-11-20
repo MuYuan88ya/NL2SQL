@@ -1,12 +1,14 @@
 from typing import List, Dict, Set
-from langchain_core.prompts import PromptTemplate
-from langchain_openai import ChatOpenAI
-from .utils import PROMPT_DIRECT_LINKING, PROMPT_GENERATE_SKELETON
+from openai import OpenAI
+from typing import List, Dict, Set
+from openai import OpenAI
+from .utils import PROMPT_DIRECT_LINKING, PROMPT_GENERATE_SKELETON, call_openai_with_retry
 import sqlglot
 
 class SchemaLinker:
-    def __init__(self, llm: ChatOpenAI):
-        self.llm = llm
+    def __init__(self, client: OpenAI, model_name: str):
+        self.client = client
+        self.model_name = model_name
 
     def link(self, question: str, schema: str, values: Dict[str, List[str]]) -> str:
         """Combines Direct, Reversed, and Value-based linking."""
@@ -36,27 +38,28 @@ class SchemaLinker:
         filtered_schema = self._filter_schema_str(schema, all_tables)
         return filtered_schema
 
+    def _call_openai(self, prompt: str) -> str:
+        return call_openai_with_retry(self.client, self.model_name, prompt)
+
     def _direct_link(self, question: str, schema: str, values: Dict[str, List[str]]) -> Set[str]:
-        prompt = PromptTemplate.from_template(PROMPT_DIRECT_LINKING)
-        chain = prompt | self.llm
-        response = chain.invoke({
-            "schema": schema,
-            "question": question,
-            "values": str(values)
-        })
-        return self._parse_tables(response.content)
+        prompt = PROMPT_DIRECT_LINKING.format(
+            schema=schema,
+            question=question,
+            values=str(values)
+        )
+        response = self._call_openai(prompt)
+        return self._parse_tables(response)
 
     def _reversed_link(self, question: str, schema: str, values: Dict[str, List[str]]) -> Set[str]:
         # Use skeleton generation as a proxy for "draft SQL" for reversed linking
         # The paper says "Generate a draft SQL query directly... then use a static parser"
-        prompt = PromptTemplate.from_template(PROMPT_GENERATE_SKELETON)
-        chain = prompt | self.llm
-        response = chain.invoke({
-            "schema": schema,
-            "question": question
-        })
+        prompt = PROMPT_GENERATE_SKELETON.format(
+            schema=schema,
+            question=question
+        )
+        response = self._call_openai(prompt)
         try:
-            parsed = sqlglot.parse_one(response.content)
+            parsed = sqlglot.parse_one(response)
             tables = set()
             for table in parsed.find_all(sqlglot.exp.Table):
                 tables.add(table.name)

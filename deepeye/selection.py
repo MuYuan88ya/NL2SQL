@@ -1,12 +1,14 @@
 from typing import List, Dict, Tuple
 from collections import Counter
-from langchain_core.prompts import PromptTemplate
-from langchain_openai import ChatOpenAI
-from .utils import execute_sql, PROMPT_PAIRWISE_VOTE
+from openai import OpenAI
+from collections import Counter
+from openai import OpenAI
+from .utils import execute_sql, PROMPT_PAIRWISE_VOTE, call_openai_with_retry
 
 class ConfidenceSelector:
-    def __init__(self, llm: ChatOpenAI, db_path: str):
-        self.llm = llm
+    def __init__(self, client: OpenAI, model_name: str, db_path: str):
+        self.client = client
+        self.model_name = model_name
         self.db_path = db_path
 
     def select(self, candidates: List[str], question: str) -> str:
@@ -58,13 +60,14 @@ class ConfidenceSelector:
         sql_a = c1_sqls[0]
         sql_b = c2_sqls[0]
         
-        prompt = PromptTemplate.from_template(PROMPT_PAIRWISE_VOTE)
-        chain = prompt | self.llm
-        vote = chain.invoke({
-            "question": question,
-            "sql_a": sql_a,
-            "sql_b": sql_b
-        }).content.strip().upper()
+        prompt = PROMPT_PAIRWISE_VOTE.format(
+            question=question,
+            sql_a=sql_a,
+            sql_b=sql_b
+        )
+        
+        response_content = call_openai_with_retry(self.client, self.model_name, prompt)
+        vote = response_content.strip().upper()
         
         if 'A' in vote:
             return sql_a

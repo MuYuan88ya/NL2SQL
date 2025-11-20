@@ -1,6 +1,9 @@
 import os
 import sqlite3
 from typing import List, Dict, Any, Optional
+import time
+import random
+from openai import OpenAI, RateLimitError, APIError
 
 # --- Database Utils ---
 
@@ -53,6 +56,51 @@ def execute_sql(db_path: str, sql: str) -> List[Any]:
         return [f"Error: {e}"]
     finally:
         conn.close()
+
+def call_openai_with_retry(client: OpenAI, model_name: str, prompt: str, max_retries: int = 5, initial_delay: float = 1.0) -> str:
+    """
+    Calls OpenAI API with exponential backoff retry logic for RateLimitError.
+    """
+    delay = initial_delay
+    
+    for attempt in range(max_retries):
+        try:
+            response = client.chat.completions.create(
+                model=model_name,
+                messages=[{"role": "user", "content": prompt}],
+                temperature=0
+            )
+            return response.choices[0].message.content
+            
+        except RateLimitError as e:
+            if attempt == max_retries - 1:
+                raise e
+            
+            sleep_time = delay * (1 + random.random() * 0.1) # Add jitter
+            print(f"Rate limit hit. Retrying in {sleep_time:.2f}s... (Attempt {attempt + 1}/{max_retries})")
+            time.sleep(sleep_time)
+            delay *= 2
+            
+        except APIError as e:
+            # For other API errors (like 500s), we might also want to retry.
+            # Check if it's a server error (5xx) or a timeout
+            should_retry = False
+            if hasattr(e, 'status_code') and e.status_code and e.status_code >= 500:
+                should_retry = True
+            elif 'timeout' in str(type(e)).lower(): # APITimeoutError usually
+                should_retry = True
+            
+            if should_retry:
+                 if attempt == max_retries - 1:
+                    raise e
+                 sleep_time = delay * (1 + random.random() * 0.1)
+                 print(f"OpenAI API Error ({e}). Retrying in {sleep_time:.2f}s... (Attempt {attempt + 1}/{max_retries})")
+                 time.sleep(sleep_time)
+                 delay *= 2
+            else:
+                raise e
+                
+    raise Exception("Max retries exceeded")
 
 # --- Prompts ---
 

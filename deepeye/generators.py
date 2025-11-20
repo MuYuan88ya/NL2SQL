@@ -1,33 +1,32 @@
 from typing import List, Dict
-from langchain_core.prompts import PromptTemplate
-from langchain_openai import ChatOpenAI
-from .utils import PROMPT_GENERATE_SKELETON, PROMPT_FILL_SKELETON, PROMPT_ICL_GEN, PROMPT_DNC_GEN
+from openai import OpenAI
+from openai import OpenAI
+from .utils import PROMPT_GENERATE_SKELETON, PROMPT_FILL_SKELETON, PROMPT_ICL_GEN, PROMPT_DNC_GEN, call_openai_with_retry
 
 class SQLGenerator:
-    def __init__(self, llm: ChatOpenAI):
-        self.llm = llm
+    def __init__(self, client: OpenAI, model_name: str):
+        self.client = client
+        self.model_name = model_name
 
     def generate(self, question: str, schema: str, values: Dict[str, List[str]]) -> str:
         raise NotImplementedError
 
+    def _call_openai(self, prompt: str) -> str:
+        return call_openai_with_retry(self.client, self.model_name, prompt)
+
 class SkeletonGenerator(SQLGenerator):
     def generate(self, question: str, schema: str, values: Dict[str, List[str]]) -> str:
         # 1. Generate Skeleton
-        skel_prompt = PromptTemplate.from_template(PROMPT_GENERATE_SKELETON)
-        skel_chain = skel_prompt | self.llm
-        skeleton = skel_chain.invoke({
-            "schema": schema,
-            "question": question
-        }).content
+        skel_prompt = PROMPT_GENERATE_SKELETON.format(schema=schema, question=question)
+        skeleton = self._call_openai(skel_prompt)
         
         # 2. Fill Skeleton
-        fill_prompt = PromptTemplate.from_template(PROMPT_FILL_SKELETON)
-        fill_chain = fill_prompt | self.llm
-        sql = fill_chain.invoke({
-            "skeleton": skeleton,
-            "question": question,
-            "values": str(values)
-        }).content
+        fill_prompt = PROMPT_FILL_SKELETON.format(
+            skeleton=skeleton,
+            question=question,
+            values=str(values)
+        )
+        sql = self._call_openai(fill_prompt)
         
         return self._clean_sql(sql)
 
@@ -45,14 +44,13 @@ class ICLGenerator(SQLGenerator):
         SQL: SELECT course_name FROM courses WHERE department = 'Computer Science';
         """
         
-        prompt = PromptTemplate.from_template(PROMPT_ICL_GEN)
-        chain = prompt | self.llm
-        sql = chain.invoke({
-            "schema": schema,
-            "examples": examples,
-            "question": question,
-            "values": str(values)
-        }).content
+        prompt = PROMPT_ICL_GEN.format(
+            schema=schema,
+            examples=examples,
+            question=question,
+            values=str(values)
+        )
+        sql = self._call_openai(prompt)
         
         return self._clean_sql(sql)
 
@@ -62,13 +60,12 @@ class ICLGenerator(SQLGenerator):
 class DivideAndConquerGenerator(SQLGenerator):
     def generate(self, question: str, schema: str, values: Dict[str, List[str]]) -> str:
         # Simplified D&C: Just ask LLM to break it down internally
-        prompt = PromptTemplate.from_template(PROMPT_DNC_GEN)
-        chain = prompt | self.llm
-        sql = chain.invoke({
-            "schema": schema,
-            "question": question,
-            "values": str(values)
-        }).content
+        prompt = PROMPT_DNC_GEN.format(
+            schema=schema,
+            question=question,
+            values=str(values)
+        )
+        sql = self._call_openai(prompt)
         
         return self._clean_sql(sql)
 

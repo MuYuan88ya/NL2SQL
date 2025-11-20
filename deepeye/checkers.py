@@ -1,7 +1,8 @@
 from typing import List, Tuple
-from langchain_core.prompts import PromptTemplate
-from langchain_openai import ChatOpenAI
-from .utils import PROMPT_REVISE_SQL
+from openai import OpenAI
+from typing import List, Tuple
+from openai import OpenAI
+from .utils import PROMPT_REVISE_SQL, call_openai_with_retry
 import sqlglot
 import re
 
@@ -26,8 +27,9 @@ class JoinChecker(Checker):
         return True, ""
 
 class ToolChain:
-    def __init__(self, llm: ChatOpenAI):
-        self.llm = llm
+    def __init__(self, client: OpenAI, model_name: str):
+        self.client = client
+        self.model_name = model_name
         self.checkers = [
             SyntaxChecker(),
             JoinChecker()
@@ -45,11 +47,11 @@ class ToolChain:
         return current_sql
 
     def _revise(self, sql: str, question: str, error: str) -> str:
-        prompt = PromptTemplate.from_template(PROMPT_REVISE_SQL)
-        chain = prompt | self.llm
-        revised = chain.invoke({
-            "question": question,
-            "sql": sql,
-            "error": error
-        }).content
+        prompt = PROMPT_REVISE_SQL.format(
+            question=question,
+            sql=sql,
+            error=error
+        )
+        
+        revised = call_openai_with_retry(self.client, self.model_name, prompt)
         return revised.replace("```sql", "").replace("```", "").strip()

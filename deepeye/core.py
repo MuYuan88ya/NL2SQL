@@ -1,6 +1,7 @@
 import os
 from typing import List, Dict, Any
-from langchain_openai import ChatOpenAI
+from openai import OpenAI
+from dotenv import load_dotenv
 
 from .schema_linking import SchemaLinker
 from .value_retrieval import ValueRetriever
@@ -9,22 +10,32 @@ from .checkers import ToolChain
 from .selection import ConfidenceSelector
 from .utils import get_schema_info
 
+load_dotenv()
+
 class DeepEyeSQL:
-    def __init__(self, db_path: str, openai_api_key: str):
+    def __init__(self, db_path: str, api_key: str = None, base_url: str = None, model_name: str = None):
         self.db_path = db_path
-        self.llm = ChatOpenAI(model="gpt-4o", temperature=0, api_key=openai_api_key)
+        
+        api_key = api_key or os.getenv("OPENAI_API_KEY")
+        base_url = base_url or os.getenv("OPENAI_BASE_URL")
+        self.model_name = model_name or os.getenv("OPENAI_MODEL_NAME", "gpt-4o")
+        
+        if not api_key:
+            raise ValueError("OPENAI_API_KEY not found in environment variables.")
+            
+        self.client = OpenAI(api_key=api_key, base_url=base_url)
         self.schema = get_schema_info(db_path)
         
         # Initialize components
         self.value_retriever = ValueRetriever(db_path)
-        self.schema_linker = SchemaLinker(self.llm)
+        self.schema_linker = SchemaLinker(self.client, self.model_name)
         self.generators = [
-            SkeletonGenerator(self.llm),
-            ICLGenerator(self.llm),
-            DivideAndConquerGenerator(self.llm)
+            SkeletonGenerator(self.client, self.model_name),
+            ICLGenerator(self.client, self.model_name),
+            DivideAndConquerGenerator(self.client, self.model_name)
         ]
-        self.checker_chain = ToolChain(self.llm)
-        self.selector = ConfidenceSelector(self.llm, db_path)
+        self.checker_chain = ToolChain(self.client, self.model_name)
+        self.selector = ConfidenceSelector(self.client, self.model_name, db_path)
 
     def run(self, question: str) -> str:
         print(f"Processing question: {question}")
