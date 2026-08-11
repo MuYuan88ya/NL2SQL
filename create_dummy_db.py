@@ -1,7 +1,7 @@
 import sqlite3
 import os
 
-DB_PATH = "g:/NL2SQL/school.db"
+DB_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "school.db")
 
 def create_dummy_db():
     if os.path.exists(DB_PATH):

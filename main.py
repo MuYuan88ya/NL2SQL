@@ -4,7 +4,8 @@ from deepeye.core import DeepEyeSQL
 
 def main():
     parser = argparse.ArgumentParser(description="DeepEye-SQL MVP")
-    parser.add_argument("--db", type=str, default="g:/NL2SQL/school.db", help="Path to SQLite database")
+    default_db = os.path.join(os.path.dirname(os.path.abspath(__file__)), "school.db")
+    parser.add_argument("--db", type=str, default=default_db, help="Path to SQLite database")
     parser.add_argument("--question", type=str, default="Show me all students", help="Natural language question")
     parser.add_argument("--api_key", type=str, required=False, help="OpenAI API Key")
     parser.add_argument("--base_url", type=str, required=False, help="OpenAI Base URL")

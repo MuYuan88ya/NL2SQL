@@ -8,7 +8,7 @@
 
 ### 阶段 1：Schema Linking 与规则检查补全 (P0 - 高优先级)
 
-- [ ] **Task 1.1: Schema Linking 关系闭包 (Relational Closure)**
+- [x] **Task 1.1: Schema Linking 关系闭包 (Relational Closure)** (已于 2026-08-11 完成)
   - **目标**: 解析数据库中的 `FOREIGN KEY` 约束构建无向图/有向图，当选中的表不连通时，自动补全最短路径上的中间外键表。
   - **模块**: `deepeye/schema_linking.py`
   - **测试**: 验证跨表查询 (如 `students` -> `enrollments` -> `courses`) 在只指定 `students` 和 `courses` 时能自动补充 `enrollments` 表。

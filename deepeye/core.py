@@ -28,7 +28,7 @@ class DeepEyeSQL:
         
         # Initialize components
         self.value_retriever = ValueRetriever(db_path)
-        self.schema_linker = SchemaLinker(self.client, self.model_name)
+        self.schema_linker = SchemaLinker(self.client, self.model_name, db_path=self.db_path)
         self.generators = [
             SkeletonGenerator(self.client, self.model_name),
             ICLGenerator(self.client, self.model_name),
@@ -43,7 +43,7 @@ class DeepEyeSQL:
         # Phase 1: Intent Scoping & Semantic Grounding
         print("Phase 1: Intent Scoping...")
         values = self.value_retriever.retrieve(question)
-        linked_schema = self.schema_linker.link(question, self.schema, values)
+        linked_schema = self.schema_linker.link(question, self.schema, values, db_path=self.db_path)
         print(f"Linked Schema (partial): {linked_schema[:100]}...")
         
         # Phase 2: N-version Generation
