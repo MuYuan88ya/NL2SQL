@@ -34,7 +34,7 @@ class DeepEyeSQL:
             ICLGenerator(self.client, self.model_name),
             DivideAndConquerGenerator(self.client, self.model_name)
         ]
-        self.checker_chain = ToolChain(self.client, self.model_name)
+        self.checker_chain = ToolChain(self.client, self.model_name, db_path=self.db_path)
         self.selector = ConfidenceSelector(self.client, self.model_name, db_path)
 
     def run(self, question: str) -> str:
@@ -61,7 +61,7 @@ class DeepEyeSQL:
         print("Phase 3: Unit Testing & Revision...")
         revised_candidates = []
         for sql in candidates:
-            revised_sql = self.checker_chain.run(sql, question, linked_schema)
+            revised_sql = self.checker_chain.run(sql, question, linked_schema, db_path=self.db_path)
             revised_candidates.append(revised_sql)
             print(f"Revised SQL: {revised_sql}")
             
