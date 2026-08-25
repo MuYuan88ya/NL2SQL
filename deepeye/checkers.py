@@ -25,6 +25,34 @@ class JoinChecker(Checker):
             return False, "JOIN clause missing ON condition."
         return True, ""
 
+class SelectChecker(Checker):
+    def check(self, sql: str, db_path: str = None) -> Tuple[bool, str]:
+        try:
+            parsed = sqlglot.parse_one(sql, read="sqlite")
+            for select in parsed.find_all(sqlglot.exp.Select):
+                for expr in select.expressions:
+                    if isinstance(expr, sqlglot.exp.Star):
+                        return False, "SELECT Check Warning: 'SELECT *' detected. Please project only the specific column(s) requested by the user question."
+                    if isinstance(expr, sqlglot.exp.Column) and isinstance(expr.this, sqlglot.exp.Star):
+                        return False, "SELECT Check Warning: 'SELECT table.*' detected. Please project only the specific column(s) requested by the user question."
+            return True, ""
+        except Exception:
+            if re.search(r'\bSELECT\s+\*\s+FROM\b', sql, re.IGNORECASE):
+                return False, "SELECT Check Warning: 'SELECT *' detected. Please project only the specific column(s) requested by the user question."
+            return True, ""
+
+class NullChecker(Checker):
+    def check(self, sql: str, db_path: str = None) -> Tuple[bool, str]:
+        # 1. Check for '= NULL' or '!= NULL' or '<> NULL'
+        if re.search(r'(?:=|\!=|<>)\s*NULL\b', sql, re.IGNORECASE):
+            return False, "NULL Trap Warning: Invalid NULL comparison using '=' or '!='. Use 'IS NULL' or 'IS NOT NULL' instead."
+
+        # 2. Check for 'NOT IN (SELECT ...)' which can fail when NULL values exist in subquery
+        if re.search(r'\bNOT\s+IN\s*\(\s*SELECT\b', sql, re.IGNORECASE):
+            return False, "NULL Trap Warning: 'NOT IN (SELECT ...)' subquery detected. If the subquery column contains NULLs, the condition evaluates to UNKNOWN. Consider using 'NOT EXISTS' instead."
+
+        return True, ""
+
 class ResultChecker(Checker):
     def __init__(self, db_path: str = None):
         self.db_path = db_path
@@ -68,6 +96,8 @@ class ToolChain:
         self.checkers = [
             SyntaxChecker(),
             JoinChecker(),
+            SelectChecker(),
+            NullChecker(),
             ResultChecker(db_path=self.db_path)
         ]
 

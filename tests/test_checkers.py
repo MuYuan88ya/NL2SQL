@@ -1,7 +1,7 @@
 import os
 import sqlite3
 import unittest
-from deepeye.checkers import SyntaxChecker, JoinChecker, ResultChecker, ToolChain
+from deepeye.checkers import SyntaxChecker, JoinChecker, SelectChecker, NullChecker, ResultChecker, ToolChain
 
 class TestCheckers(unittest.TestCase):
     @classmethod
@@ -40,6 +40,30 @@ class TestCheckers(unittest.TestCase):
         valid_bad, err_bad = checker.check("SELECT * FROM a JOIN b;")
         self.assertFalse(valid_bad)
         self.assertIn("missing ON", err_bad)
+
+    def test_select_checker(self):
+        checker = SelectChecker()
+        valid, err = checker.check("SELECT name, score FROM users;")
+        self.assertTrue(valid)
+        self.assertEqual(err, "")
+
+        valid_bad, err_bad = checker.check("SELECT * FROM users;")
+        self.assertFalse(valid_bad)
+        self.assertIn("SELECT *", err_bad)
+
+    def test_null_checker(self):
+        checker = NullChecker()
+        valid, err = checker.check("SELECT name FROM users WHERE score IS NULL;")
+        self.assertTrue(valid)
+        self.assertEqual(err, "")
+
+        valid_bad, err_bad = checker.check("SELECT name FROM users WHERE score = NULL;")
+        self.assertFalse(valid_bad)
+        self.assertIn("Invalid NULL comparison", err_bad)
+
+        valid_not_in, err_not_in = checker.check("SELECT name FROM users WHERE id NOT IN (SELECT id FROM users);")
+        self.assertFalse(valid_not_in)
+        self.assertIn("NOT IN (SELECT ...)", err_not_in)
 
     def test_result_checker_success(self):
         checker = ResultChecker(db_path=self.db_path)

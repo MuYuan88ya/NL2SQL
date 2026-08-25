@@ -17,7 +17,7 @@
   - **目标**: 在 SQLite 上试运行生成的 SQL，检测是否返回空集合、全 NULL 集合或导致句法错误，并返回改进建议。
   - **模块**: `deepeye/checkers.py`
 
-- [ ] **Task 1.3: NullChecker & SelectChecker 实现**
+- [x] **Task 1.3: NullChecker & SelectChecker 实现** (已于 2026-08-25 完成)
   - **目标**: 针对 `COUNT()` 与 `NULL` 陷阱进行确定性静态检查，移除 `SELECT *` 避免不必要的列暴露。
   - **模块**: `deepeye/checkers.py`
 
