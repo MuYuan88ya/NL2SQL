@@ -29,7 +29,7 @@
 
 ### 阶段 2：语义检索与 ICL 动态增强 (P1 - 核心功能)
 
-- [ ] **Task 2.1: 向量化 Value Retrieval (Embedding + VectorDB)**
+- [x] **Task 2.1: 向量化 Value Retrieval (Embedding + VectorDB)** (已于 2026-08-26 完成)
   - **目标**: 替代现有 SQL `LIKE` 模糊匹配，引入向量数据库与离线/在线 Embedding 索引，支持近义词实体检索（如 "USA" -> "United States"）。
   - **模块**: `deepeye/value_retrieval.py`
 

@@ -27,7 +27,7 @@ class DeepEyeSQL:
         self.schema = get_schema_info(db_path)
         
         # Initialize components
-        self.value_retriever = ValueRetriever(db_path)
+        self.value_retriever = ValueRetriever(db_path, client=self.client)
         self.schema_linker = SchemaLinker(self.client, self.model_name, db_path=self.db_path)
         self.generators = [
             SkeletonGenerator(self.client, self.model_name),
