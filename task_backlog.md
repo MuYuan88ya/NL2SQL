@@ -21,7 +21,7 @@
   - **目标**: 针对 `COUNT()` 与 `NULL` 陷阱进行确定性静态检查，移除 `SELECT *` 避免不必要的列暴露。
   - **模块**: `deepeye/checkers.py`
 
-- [ ] **Task 1.4: TimeChecker & OrderByChecker 实现**
+- [x] **Task 1.4: TimeChecker & OrderByChecker 实现** (已于 2026-08-26 完成)
   - **目标**: 针对时间格式化函数、`ORDER BY` 缺少 `LIMIT` 或字段歧义进行纠错提示。
   - **模块**: `deepeye/checkers.py`
 

@@ -53,6 +53,42 @@ class NullChecker(Checker):
 
         return True, ""
 
+class TimeChecker(Checker):
+    NON_SQLITE_TIME_FUNCS = ["YEAR", "MONTH", "DAY", "HOUR", "MINUTE", "SECOND", "NOW", "CURDATE", "CURTIME", "DATEDIFF", "DATE_ADD", "DATE_SUB", "TIMEDIFF"]
+
+    def check(self, sql: str, db_path: str = None) -> Tuple[bool, str]:
+        try:
+            parsed = sqlglot.parse_one(sql, read="sqlite")
+            for func in parsed.find_all(sqlglot.exp.Anonymous, sqlglot.exp.Func):
+                func_name = func.name.upper() if hasattr(func, "name") else ""
+                if func_name in self.NON_SQLITE_TIME_FUNCS:
+                    return False, f"Time Function Warning: SQLite does not support function '{func_name}()'. Use SQLite functions like strftime('%Y', column) or date('now') instead."
+        except Exception:
+            pass
+
+        for func in self.NON_SQLITE_TIME_FUNCS:
+            pattern = rf'\b{func}\s*\('
+            if re.search(pattern, sql, re.IGNORECASE):
+                return False, f"Time Function Warning: SQLite does not support function '{func}()'. Use SQLite functions like strftime('%Y', column) or date('now') instead."
+
+        return True, ""
+
+class OrderByChecker(Checker):
+    def check(self, sql: str, db_path: str = None) -> Tuple[bool, str]:
+        try:
+            parsed = sqlglot.parse_one(sql, read="sqlite")
+            for order in parsed.find_all(sqlglot.exp.Order):
+                for ordered in order.expressions:
+                    if not ordered.this:
+                        return False, "ORDER BY Warning: Invalid ORDER BY clause."
+            if re.search(r'\bORDER\s+BY\s*(?:LIMIT|WHERE|GROUP|;|$)', sql, re.IGNORECASE):
+                return False, "ORDER BY Warning: Empty ORDER BY clause detected."
+        except Exception:
+            if re.search(r'\bORDER\s+BY\s*(?:LIMIT|WHERE|GROUP|;|$)', sql, re.IGNORECASE):
+                return False, "ORDER BY Warning: Empty ORDER BY clause detected."
+
+        return True, ""
+
 class ResultChecker(Checker):
     def __init__(self, db_path: str = None):
         self.db_path = db_path
@@ -98,6 +134,8 @@ class ToolChain:
             JoinChecker(),
             SelectChecker(),
             NullChecker(),
+            TimeChecker(),
+            OrderByChecker(),
             ResultChecker(db_path=self.db_path)
         ]
 

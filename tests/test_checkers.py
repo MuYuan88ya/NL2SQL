@@ -1,7 +1,7 @@
 import os
 import sqlite3
 import unittest
-from deepeye.checkers import SyntaxChecker, JoinChecker, SelectChecker, NullChecker, ResultChecker, ToolChain
+from deepeye.checkers import SyntaxChecker, JoinChecker, SelectChecker, NullChecker, TimeChecker, OrderByChecker, ResultChecker, ToolChain
 
 class TestCheckers(unittest.TestCase):
     @classmethod
@@ -12,9 +12,9 @@ class TestCheckers(unittest.TestCase):
             
         conn = sqlite3.connect(cls.db_path)
         cursor = conn.cursor()
-        cursor.execute("CREATE TABLE users (id INT, name TEXT, score INT);")
-        cursor.execute("INSERT INTO users VALUES (1, 'Alice', 100);")
-        cursor.execute("INSERT INTO users VALUES (2, NULL, NULL);")
+        cursor.execute("CREATE TABLE users (id INT, name TEXT, score INT, created_at TEXT);")
+        cursor.execute("INSERT INTO users VALUES (1, 'Alice', 100, '2023-01-01');")
+        cursor.execute("INSERT INTO users VALUES (2, NULL, NULL, '2023-01-02');")
         conn.commit()
         conn.close()
 
@@ -64,6 +64,26 @@ class TestCheckers(unittest.TestCase):
         valid_not_in, err_not_in = checker.check("SELECT name FROM users WHERE id NOT IN (SELECT id FROM users);")
         self.assertFalse(valid_not_in)
         self.assertIn("NOT IN (SELECT ...)", err_not_in)
+
+    def test_time_checker(self):
+        checker = TimeChecker()
+        valid, err = checker.check("SELECT strftime('%Y', created_at) FROM users;")
+        self.assertTrue(valid)
+        self.assertEqual(err, "")
+
+        valid_bad, err_bad = checker.check("SELECT YEAR(created_at) FROM users;")
+        self.assertFalse(valid_bad)
+        self.assertIn("Time Function Warning", err_bad)
+
+    def test_orderby_checker(self):
+        checker = OrderByChecker()
+        valid, err = checker.check("SELECT name FROM users ORDER BY score DESC LIMIT 1;")
+        self.assertTrue(valid)
+        self.assertEqual(err, "")
+
+        valid_bad, err_bad = checker.check("SELECT name FROM users ORDER BY ;")
+        self.assertFalse(valid_bad)
+        self.assertIn("ORDER BY Warning", err_bad)
 
     def test_result_checker_success(self):
         checker = ResultChecker(db_path=self.db_path)
