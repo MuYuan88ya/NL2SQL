@@ -33,7 +33,7 @@
   - **目标**: 替代现有 SQL `LIKE` 模糊匹配，引入向量数据库与离线/在线 Embedding 索引，支持近义词实体检索（如 "USA" -> "United States"）。
   - **模块**: `deepeye/value_retrieval.py`
 
-- [ ] **Task 2.2: 动态 ICL 示例检索 (DAIL-SQL 范式)**
+- [x] **Task 2.2: 动态 ICL 示例检索 (DAIL-SQL 范式)** (已于 2026-08-27 完成)
   - **目标**: 摒弃硬编码 Few-shot 示例，构建 Schema-masked 检索索引，根据当前问题动态匹配 2-3 个最相似的真实 SQL 示例。
   - **模块**: `deepeye/generators.py`
 
