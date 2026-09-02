@@ -1,6 +1,6 @@
 import os
 import sqlite3
-from typing import List, Dict, Any, Optional
+from typing import List, Dict, Any, Optional, Tuple
 import time
 import random
 from openai import OpenAI, RateLimitError, APIError
@@ -54,6 +54,20 @@ def execute_sql(db_path: str, sql: str) -> List[Any]:
         return [tuple(row) for row in results]
     except sqlite3.Error as e:
         return [f"Error: {e}"]
+    finally:
+        conn.close()
+
+def execute_sql_with_headers(db_path: str, sql: str) -> Tuple[List[str], List[Any]]:
+    """Executes a SQL query and returns column headers and rows."""
+    conn = get_db_connection(db_path)
+    cursor = conn.cursor()
+    try:
+        cursor.execute(sql)
+        headers = [d[0] for d in cursor.description] if cursor.description else []
+        results = cursor.fetchall()
+        return headers, [tuple(row) for row in results]
+    except sqlite3.Error as e:
+        return ["Error"], [(str(e),)]
     finally:
         conn.close()
 
