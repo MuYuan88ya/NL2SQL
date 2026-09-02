@@ -37,7 +37,7 @@
   - **目标**: 摒弃硬编码 Few-shot 示例，构建 Schema-masked 检索索引，根据当前问题动态匹配 2-3 个最相似的真实 SQL 示例。
   - **模块**: `deepeye/generators.py`
 
-- [ ] **Task 2.3: Divide-and-Conquer 生成器代码级任务拆解**
+- [x] **Task 2.3: Divide-and-Conquer 生成器代码级任务拆解** (已于 2026-09-03 完成)
   - **目标**: 实现真实的代码级子问题递归拆解与子 SQL 拼接，而非仅依赖 Prompt 隐式推理。
   - **模块**: `deepeye/generators.py`
 

@@ -1,8 +1,18 @@
+import json
 import math
 import re
 from typing import List, Dict, Any, Optional
 from openai import OpenAI
-from .utils import PROMPT_GENERATE_SKELETON, PROMPT_FILL_SKELETON, PROMPT_ICL_GEN, PROMPT_DNC_GEN, call_openai_with_retry
+from .utils import (
+    PROMPT_GENERATE_SKELETON,
+    PROMPT_FILL_SKELETON,
+    PROMPT_ICL_GEN,
+    PROMPT_DNC_GEN,
+    PROMPT_DNC_DECOMPOSE,
+    PROMPT_DNC_SUBPROBLEM,
+    PROMPT_DNC_COMPOSE,
+    call_openai_with_retry
+)
 
 DEFAULT_GOLD_EXAMPLES = [
     {
@@ -141,11 +151,86 @@ class ICLGenerator(SQLGenerator):
         return self._clean_sql(sql)
 
 class DivideAndConquerGenerator(SQLGenerator):
+    """
+    Divide-and-Conquer (D&C) Generator.
+    Decomposes complex natural language questions into structured sub-problems,
+    solves subqueries/CTEs modularly, and composes them into the final SQL.
+    """
     def generate(self, question: str, schema: str, values: Dict[str, List[str]]) -> str:
-        prompt = PROMPT_DNC_GEN.format(
+        # Step 1: Decompose
+        decomposition = self.decompose(question, schema, values)
+        
+        # If atomic / not complex, directly solve
+        sub_questions = decomposition.get("sub_questions", [])
+        if not decomposition.get("is_complex") or len(sub_questions) <= 1:
+            prompt = PROMPT_DNC_GEN.format(
+                schema=schema,
+                question=question,
+                values=str(values)
+            )
+            sql = self._call_openai(prompt)
+            return self._clean_sql(sql)
+
+        # Step 2: Solve Sub-problems
+        intermediate_solutions = []
+        for sq in sub_questions:
+            sub_id = sq.get("id", 1)
+            desc = sq.get("description", "")
+            role = sq.get("role", "subquery")
+            
+            # Skip the root main composition step if marked as 'main'
+            if role == "main" and len(sub_questions) > 1:
+                continue
+                
+            sub_prompt = PROMPT_DNC_SUBPROBLEM.format(
+                schema=schema,
+                sub_question=desc,
+                values=str(values)
+            )
+            sub_sql = self._clean_sql(self._call_openai(sub_prompt))
+            intermediate_solutions.append(f"Sub-problem {sub_id} ({desc}):\n{sub_sql}")
+
+        # Step 3: Compose
+        if intermediate_solutions:
+            compose_prompt = PROMPT_DNC_COMPOSE.format(
+                schema=schema,
+                question=question,
+                intermediate_solutions="\n\n".join(intermediate_solutions),
+                values=str(values)
+            )
+            final_sql = self._clean_sql(self._call_openai(compose_prompt))
+            return final_sql
+        else:
+            prompt = PROMPT_DNC_GEN.format(
+                schema=schema,
+                question=question,
+                values=str(values)
+            )
+            return self._clean_sql(self._call_openai(prompt))
+
+    def decompose(self, question: str, schema: str, values: Dict[str, List[str]]) -> Dict[str, Any]:
+        """Decomposes a question into sub-problems via LLM JSON call, with heuristic fallback."""
+        prompt = PROMPT_DNC_DECOMPOSE.format(
             schema=schema,
             question=question,
             values=str(values)
         )
-        sql = self._call_openai(prompt)
-        return self._clean_sql(sql)
+        try:
+            response = self._call_openai(prompt)
+            cleaned = response.replace("```json", "").replace("```", "").strip()
+            data = json.loads(cleaned)
+            if isinstance(data, dict) and "is_complex" in data:
+                return data
+        except Exception:
+            pass
+
+        # Fallback heuristic: check if question has conjunctions or complex nested clauses
+        lower_q = question.lower()
+        complex_signals = ["each", "per", "highest", "lowest", "most", "least", "and then", "whose", "which have"]
+        is_complex = any(sig in lower_q for sig in complex_signals)
+        return {
+            "is_complex": is_complex,
+            "sub_questions": [
+                {"id": 1, "description": question, "role": "main"}
+            ]
+        }

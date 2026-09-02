@@ -154,7 +154,7 @@ Return ONLY the SQL query.
 """
 
 PROMPT_DNC_GEN = """
-You are a SQL expert. Solve this complex question by breaking it down if necessary.
+You are a SQL expert. Solve this question by generating a valid SQL query.
 Schema:
 {schema}
 
@@ -163,6 +163,53 @@ Question: {question}
 Values: {values}
 
 Return ONLY the final SQL query.
+"""
+
+PROMPT_DNC_DECOMPOSE = """
+You are a database expert. Analyze the user question and database schema to determine if it should be decomposed into sub-problems (e.g. subqueries, CTEs, filters, or aggregations).
+Schema:
+{schema}
+
+Question: {question}
+
+Values: {values}
+
+Respond with a JSON object:
+{{
+  "is_complex": true or false,
+  "sub_questions": [
+    {{"id": 1, "description": "description of sub-problem 1", "role": "subquery/cte"}},
+    {{"id": 2, "description": "description of main query composition", "role": "main"}}
+  ]
+}}
+Return ONLY valid JSON.
+"""
+
+PROMPT_DNC_SUBPROBLEM = """
+You are a SQL expert. Write a SQL snippet or subquery for the following sub-problem.
+Schema:
+{schema}
+
+Sub-problem: {sub_question}
+
+Values: {values}
+
+Return ONLY the SQL snippet or query for this sub-problem.
+"""
+
+PROMPT_DNC_COMPOSE = """
+You are a SQL expert. Combine the intermediate SQL parts to answer the original user question.
+Schema:
+{schema}
+
+Original Question: {question}
+
+Sub-problems and Solutions:
+{intermediate_solutions}
+
+Values: {values}
+
+Compose and return ONLY the final, complete, and valid SQL query.
 """
 
 PROMPT_REVISE_SQL = """
