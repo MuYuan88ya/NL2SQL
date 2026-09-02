@@ -12,3 +12,4 @@ wheels/
 .claude
 .env
 test.ipynb
+ROADMAP.md
