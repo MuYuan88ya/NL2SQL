@@ -45,7 +45,7 @@
 
 ### 阶段 3：置信度感知选择与成对裁决 (P2 - 优化进阶)
 
-- [ ] **Task 3.1: Selection 机制引入 Cognitive Prior 与 Win Rate 计算**
+- [x] **Task 3.1: Selection 机制引入 Cognitive Prior 与 Win Rate 计算** (已于 2026-09-17 完成)
   - **目标**: 实现基于 Sampling 的 Pairwise Adjudication 比较，结合簇置信度和胜率综合打分选择最终 SQL。
   - **模块**: `deepeye/selection.py`
 

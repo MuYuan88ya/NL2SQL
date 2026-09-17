@@ -244,3 +244,28 @@ SQL B: {sql_b}
 
 Which one is better/correct? Return 'A' or 'B'.
 """
+
+PROMPT_PAIRWISE_VOTE_COGNITIVE_PRIOR = """
+You are a SQL quality judge. Compare two candidate SQL queries for the given question and schema.
+
+Question: {question}
+
+Candidate SQL A:
+```sql
+{sql_a}
+```
+Prior Execution Consensus for A: {conf_a:.1%} of candidate queries yielded this execution result (Cluster size: {count_a}).
+
+Candidate SQL B:
+```sql
+{sql_b}
+```
+Prior Execution Consensus for B: {conf_b:.1%} of candidate queries yielded this execution result (Cluster size: {count_b}).
+
+Evaluation Directive:
+- The candidate with higher prior execution consensus has an empirical advantage based on model agreement.
+- You should select the higher-confidence candidate UNLESS you identify clear, compelling evidence that it is logically flawed or that the lower-confidence candidate is demonstrably more accurate to the user question.
+- Check projection columns, table join paths, WHERE filtering predicates, and aggregation correctness.
+
+Which SQL query is superior? Return ONLY 'A' or 'B'.
+"""

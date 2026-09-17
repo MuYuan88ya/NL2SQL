@@ -7,7 +7,7 @@
 </p>
 
 [![Python Version](https://img.shields.io/badge/Python-3.11+-3776AB?style=flat-square&logo=python&logoColor=white)](https://www.python.org/)
-[![Tests Passing](https://img.shields.io/badge/Tests-22%2F22%20Passed-2ea44f?style=flat-square&logo=githubactions&logoColor=white)](https://github.com/MuYuan88ya/NL2SQL/actions)
+[![Tests Passing](https://img.shields.io/badge/Tests-25%2F25%20Passed-2ea44f?style=flat-square&logo=githubactions&logoColor=white)](https://github.com/MuYuan88ya/NL2SQL/actions)
 [![Architecture](https://img.shields.io/badge/Architecture-Multi--Agent%20Pipeline-orange?style=flat-square)](https://github.com/MuYuan88ya/NL2SQL)
 [![Database](https://img.shields.io/badge/Database-SQLite-003B57?style=flat-square&logo=sqlite&logoColor=white)](https://sqlite.org/)
 [![Parser](https://img.shields.io/badge/AST%20Parser-SQLGlot-945DD6?style=flat-square)](https://github.com/tobymao/sqlglot)
@@ -221,7 +221,7 @@ python -m unittest discover -s tests
 uv run python -m unittest discover -s tests
 ```
 
-*Status: **22 / 22 Tests Passing (100% Passing)**.*
+*Status: **25 / 25 Tests Passing (100% Passing)**.*
 
 | Test Module | Component Under Test | Status |
 | :--- | :--- | :---: |
@@ -229,6 +229,7 @@ uv run python -m unittest discover -s tests
 | `tests/test_checkers.py` | Syntax, Join, Select, Null, Time, OrderBy, ResultChecker | ✅ PASS |
 | `tests/test_value_retrieval.py` | Indexing, Cosine Similarity, Multi-gram Fuzzy Matching | ✅ PASS |
 | `tests/test_generators.py` | Dynamic ICL Demo Selection, Content Weighting, Code-level D&C | ✅ PASS |
+| `tests/test_selection.py` | Confidence-Aware Gate, Cognitive Prior, Pairwise Win-Rate Matrix | ✅ PASS |
 
 ---
 
@@ -276,7 +277,7 @@ Tracked via [task_backlog.md](task_backlog.md):
   - [x] Task 2.2: DAIL-SQL dynamic few-shot demonstration retriever
   - [x] Task 2.3: Code-level Divide-and-Conquer generator
 - [ ] **Phase 3: Confidence-Aware Selection & Evaluation (P2)**
-  - [ ] Task 3.1: Selection with Cognitive Prior and pairwise win-rate adjudication
+  - [x] Task 3.1: Selection with Cognitive Prior and pairwise win-rate adjudication
   - [ ] Task 3.2: Benchmark evaluation script for Spider / BIRD
 
 ---
